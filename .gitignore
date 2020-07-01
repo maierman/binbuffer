@@ -1,0 +1,4 @@
+build
+*.cpp
+*.so
+.ipynb_checkpoints
