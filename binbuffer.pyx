@@ -1,5 +1,5 @@
 
-# the next line is not just a comment, it tells cython to build C++ code
+# the next line is not just a comment, it tells Cython to build C++ code
 # distutils: language = c++
 
 from cpython cimport Py_buffer
@@ -22,7 +22,7 @@ NOTE:  If you examine SimpleBuffer below, you'll see that the view_count and buf
 and you could actually remove view_count entirerly without changing any functionality.  We've included
 view_count for illustration purposes however, because it shows how reference counting is supposed to work
 with the buffer protocol:  ie, if there are any open views on the buffer, then the buffer memory should not be changed
-because other objects are referencing it.  Unfortunately, numpy currently doesn't respect this protocol
+because other objects are referencing it.  Unfortunately, NumPy currently doesn't respect this protocol
 and expects buffers to exist and be unchanged even after calls to releasebuffer.  For this reason, we added the bool
 buffer_accessed to prevent any reallocation of buffer memory once a view on the memory has been requested
 via getbuffer.
@@ -33,7 +33,7 @@ cdef class SimpleBuffer:
         vector[uint8_t] buf   # vector is useful here.  We get a contiguous block of memory but don't have to manage memory ourselves.
         unsigned int cursor            # keep track of where to put next elements in buf
         int view_count        # reference counting for open views
-        bool buffer_accessed  # we need this because numpy expects buffers to exist even after releasebuffer
+        bool buffer_accessed  # we need this because NumPy expects buffers to exist even after releasebuffer
 
     def __cinit__(self):
         self.view_count = 0   
