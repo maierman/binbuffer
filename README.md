@@ -1,5 +1,5 @@
 # binbuffer
-Sample code for loading binary data to numpy / pandas.
+Sample code for loading binary data to numpy / pandas.  This is a tutorial for how to build your own fast loader for arbitrary binary data.
 
 The notebook [SimpleBuffer](SimpleBuffer.ipynb) shows how to use cython and the python buffer protocol to efficiently load binary data to numpy / pandas. 
 
