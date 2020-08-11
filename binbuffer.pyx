@@ -7,8 +7,7 @@ from cpython.buffer cimport PyBUF_SIMPLE, PyBUF_WRITEABLE
 from libcpp.vector cimport vector
 from libcpp cimport bool
 from libc.stdio cimport FILE, fread, fopen, fclose, fseek, SEEK_CUR
-from libc.stdint cimport uint8_t, uint16_t
-from libc.string cimport memcpy
+from libc.stdint cimport uint16_t
 from cython.operator cimport dereference
 
 """
@@ -30,41 +29,39 @@ via getbuffer.
 """
 cdef class SimpleBuffer:
     cdef: 
-        vector[uint8_t] buf   # vector is useful here.  We get a contiguous block of memory but don't have to manage memory ourselves.
-        unsigned int cursor            # keep track of where to put next elements in buf
+        vector[char] buf   # vector is useful here.  We get a contiguous block of memory but don't have to manage memory ourselves.
         int view_count        # reference counting for open views
         bool buffer_accessed  # we need this because NumPy expects buffers to exist even after releasebuffer
 
     def __cinit__(self):
         self.view_count = 0   
-        self.cursor = 0
         self.buffer_accessed = False  
         
     def extend(self, b):
         self.add_bytes(b, len(b))
     
-    # we split out this method so that we can preallocate if we want.  
-    cdef maybe_allocate(self, unsigned int n):
+    def preallocate(self, total_size):
         if self.buffer_accessed or self.view_count > 0:
             raise RuntimeError('Buffer has been locked to changes in size')
-        if self.buf.size() < self.cursor + n:
-            self.buf.resize(self.cursor + n)
-        
+        self.buf.reserve(total_size)
+    
     cdef add_bytes(self, char *b, unsigned int n):
-        self.maybe_allocate(n)  
-        memcpy(&(self.buf[self.cursor]), b, n)
-        self.cursor += n
+        if self.buffer_accessed or self.view_count > 0:
+            raise RuntimeError('Buffer has been locked to changes in size')
+        self.buf.insert(self.buf.end(), b, b + n)
         
     cdef add_bytes_from_file(self, FILE *fp, unsigned int n):
-        self.maybe_allocate(n)
-        fread(&(self.buf[self.cursor]), 1, n, fp)
-        self.cursor += n
+        if self.buffer_accessed or self.view_count > 0:
+            raise RuntimeError('Buffer has been locked to changes in size')
+        cdef int curr_size = self.buf.size()
+        self.buf.resize(curr_size + n)
+        fread(&self.buf[curr_size], 1, n, fp)
             
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         if flags != PyBUF_SIMPLE and flags != PyBUF_SIMPLE | PyBUF_WRITEABLE:
             raise BufferError
             
-        buffer.buf = <char *>&(self.buf[0])
+        buffer.buf = &self.buf[0]
         buffer.format = NULL                    # NULL format means bytes 
         buffer.internal = NULL                  # see References
         buffer.itemsize = 1
